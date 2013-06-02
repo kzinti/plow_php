@@ -14,6 +14,12 @@
         font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; 
         font-weight: 300;
       }
+
+      ul, li, dd{
+        margin: 0;
+        padding: 0;
+      }
+
       #map-canvas{
         height: 100%;
         width: 100%;
@@ -31,7 +37,8 @@
         border: 1px solid white;
         right: 3%;
         float: right;
-        height: 374px;
+        /*height: 374px;*/
+        height: auto;
         width: 300px;
         margin: 5% 0 0 0;
         position: absolute;
@@ -40,28 +47,41 @@
       #info-panel{
         background-color: white;
         border: 2px dotted #E9E9E9;
-        height: 370px;
+        /*height: 370px;*/
+        height: auto;
       }
 
       .panel{
-        width: 300px;
+        width: 296px;
         height: 50px;
         background-color: #E9E9E9;
         list-style-type: none;
-        text-align: center;
-      }
 
-      .panel-content dd ul{
-        margin: 0px;
-        padding: 0px;
-      }
+        /* Internet Explorer 10 */
+        display:-ms-flexbox;
+        -ms-flex-align:center;
 
+        /* Firefox */
+        display:-moz-box;
+        -moz-box-align:center;
+
+        /* Safari, Opera, and Chrome */
+        display:-webkit-box;
+        -webkit-box-align:center;
+
+        /* W3C */
+        display:box;
+        box-align:center;
+      }
       .panel-content li{
         list-style-type: none;
+        margin-left: 20%;
+        background-color: #E9E9E9;
       }
 
       .accordion{
         margin: 0px;
+
       }
 
       .accordion a{
@@ -83,6 +103,12 @@ function get_random_color() {
     }
     return color;
 }
+
+function getTruck(truck){
+          var value = truck.value;
+          var id = truck.id;
+          alert(id);
+        }
  
 function initialize() {
         var mapOptions = {
@@ -161,7 +187,7 @@ window.onload = initialize;
           return false;
         });
 
-        $('li').click
+        
 
       });
     </script>
@@ -174,25 +200,16 @@ window.onload = initialize;
           <dt class="panel"><a href="">Snowplows</a></dt>
           <dd>
             <ul class = "panel-content">
-              <li id="truck1" value="" >wefwefwef</li>
-              <li>23r23fe</li>
-              <li>23rfed</li>
             </ul>
           </dd>
           <dt class = "panel"><a href="">Sandsweepers</a></dt>
           <dd>
             <ul class = "panel-content">
-            <li>3r2wef</li>
-            <li>3r2wqef</li>
-            <li>gt4wef</li>
           </ul>
           </dd>
           <dt class = "panel"><a href="">Garbage Trucks</a></dt>
           <dd>
             <ul class = "panel-content">
-            <li>34rf</li>
-            <li>3egdf</li>
-            <li>wefda</li>
           </ul>
           </dd>
         </dl>
