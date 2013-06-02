@@ -58,6 +58,12 @@ ini_set('display_errors',"On");
         height: auto;
       }
 
+      .panel:after {
+          width: 260;
+          clear: both;
+          display:inline;
+      }
+
       .panel{
         width: 286px;
         height: 30px;
@@ -121,7 +127,7 @@ ini_set('display_errors',"On");
          .done(function (data) {
              if (data == null) return;
              posish = new google.maps.LatLng(data[0].lat, data[0].lon);
-             var place = latLongAddress(posish);
+             var place = latLongAddress(posish, vehicleId);
              var info = "ID: " + vehicleId +
                  "\nCurrent Approximate Location: " + place +
                  "\nSalt Rate: " +
@@ -140,20 +146,22 @@ ini_set('display_errors',"On");
 
  var geocoder = null;
  var infowindow = new google.maps.InfoWindow();
- var marker = null;
+ //var marker = null;
  function initialize() {
-     geocoder = new google.maps.Geocoder();
-     var mapOptions = {
-         zoom: 12,
-         center: new google.maps.LatLng(44.801207, -68.777817),
-         disableDefaultUI: true,
-         mapTypeId: google.maps.MapTypeId.ROADMAP
-     };
+  geocoder = new google.maps.Geocoder();
+  var mapOptions = {
+    zoom: 12,
+    center: new google.maps.LatLng(44.801207, -68.777817),
+    disableDefaultUI: true,
+    mapTypeId: google.maps.MapTypeId.ROADMAP
+  };
 
-     window.map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
-     marker = new google.maps.Marker({
-      map: map
-     });
+  window.map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+  markers.push = new google.maps.Marker({
+    /*icon: new google.maps.MarkerImage('noun_project_4247.svg',
+      null, null, null, new google.maps.Size(64,64)),*/
+    map: map
+  });
  }
  function in_circle(center_x, center_y, radius, x, y){
   square_dist = (center_x - x) ^ 2 + (center_y - y) ^ 2
@@ -162,16 +170,16 @@ ini_set('display_errors',"On");
 
  console.log(in_circle(44.801207,-68.777817,0.000100,0,0));
 
- function latLongAddress(latLng) {
+ function latLongAddress(latLng, id) {
      geocoder.geocode({
              'latLng': latLng
          }, function (results, status) {
              if (status == google.maps.GeocoderStatus.OK) {
                  if (results[0]) {
                       //map.setZoom(11);
-                   marker.setPosition(latLng);
+                   markers[id].setPosition(latLng);
                      infowindow.setContent(results[0].formatted_address);
-                     infowindow.open(map, marker);
+                     infowindow.open(map, markers[id]);
                      return results[0].formatted_address;
                  }
              } else {
@@ -204,7 +212,10 @@ ini_set('display_errors',"On");
                      PreviousLatLong = ItemLatLong;
                              markers[d.truckid] = new google.maps.Marker({
                                      position: ItemLatLong,
-                                     title: "Snow Plow",
+                                       title: "Snow Plow",
+                                       
+    /*icon: new google.maps.MarkerImage('noun_project_4247.svg',
+    null, null, null, new google.maps.Size(64,64)),*/
                                  });
                              flightpathcoords[d.truckid] = new Array();
                              flightpathcoords[d.truckid].push(ItemLatLong);
@@ -266,7 +277,7 @@ ini_set('display_errors',"On");
   </head>
   <body>
     <div id="map-canvas"></div>
-    <div id="info-panel-border" class="glass">
+    <div id="info-panel-border" style="display: none;" class="glass">
       <div id="info-panel" class="glass">
         <dl class="accordion">
 <?php 
@@ -275,9 +286,10 @@ $q = "SELECT type FROM vehicles GROUP BY type";
 $result = pg_fetch_all( pg_query( $dbconn, $q ) );
 foreach($result as $r){
 ?>
-  <dt class="panel"><a href=""><?php echo $r['type']; ?></a></dt>
-          <dd>
-            <ul class = "panel-content">
+    
+    <dt class="panel"><input onclick="checkEvent();" type='checkbox' class="<?php echo $r['type']; ?>" id="<?php echo $r['type'] . $i; ?>"><a href=""><?php echo $r['type']; ?></a></dt>
+            <dd>
+              <ul class = "panel-content">
 <?php
   $i=1;
   $q = "SELECT * FROM vehicles WHERE type='". $r['type'] ."';";
@@ -293,5 +305,25 @@ foreach($result as $r){
         </dl>
       </div>
     </div>
+  <script>
+    function checkEvent(){
+      if(document.getElementByClassName(this.class).checked){
+        uncheck(this);
+      } else {
+        check(this);
+      }
+    }
+    function check(item)
+    {
+
+    }
+    function uncheck(item)
+    {
+      for(var i = 0; i<markers.length; i++) {
+       //if(markers[i] = 
+      console.log(markers);
+      }
+    }
+  </script>
   </body>
 </html>
