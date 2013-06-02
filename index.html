@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Truck tracker</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.0/jquery.min.js"></script>
+    <meta charset="utf-8">
+    <style>
+    html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#map-canvas, #map_canvas {
+  height: 100%;
+}
+
+@media print {
+  html, body {
+    height: auto;
+  }
+
+  #map-canvas, #map_canvas {
+    height: 650px;
+  }
+}
+
+#panel {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  margin-left: -180px;
+  z-index: 5;
+  background-color: #fff;
+  padding: 5px;
+  border: 1px solid #999;
+}
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+    <script>
+
+function get_random_color() {
+    var letters = '0123456789ABCDEF'.split('');
+    var color = '#';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.round(Math.random() * 15)];
+    }
+    return color;
+}
+
+function initialize() {
+	var mapOptions = {
+		zoom: 12,
+		center: new google.maps.LatLng(44.801207, -68.777817),
+		mapTypeId: google.maps.MapTypeId.ROADMAP
+	};
+
+	window.map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+}
+
+window.lastid = 0;
+
+var markers = new Array();
+var flightpaths = new Array();
+var flightpathcoords = new Array();
+function map_points() {
+	jQuery.getJSON( 'http://141.114.192.128/ajax.php?lastid=' + window.lastid + '&jsonp=?', function( data ) {
+		if( data ) { 
+			jQuery.each( data, function( i, d ) {
+				if( markers[d.truckid] ) {
+					markers[d.truckid].setPosition( new google.maps.LatLng( d.lat,d.lon ) );
+					flightpathcoords[d.truckid].push( new google.maps.LatLng( d.lat,d.lon) );
+					flightpaths[d.truckid].setPath( flightpathcoords[d.truckid] );
+					flightpaths[d.truckid].setMap( window.map );
+				} else {
+					markers[d.truckid] = new google.maps.Marker({
+						position: new google.maps.LatLng( d.lat,d.lon),
+						title:"Snow Plow",
+					});
+					flightpathcoords[d.truckid] = new Array();
+					flightpathcoords[d.truckid].push( new google.maps.LatLng( d.lat,d.lon) );
+					flightpaths[d.truckid] = new google.maps.Polyline({
+                        path: flightpathcoords[d.truckid],
+                        strokeColor: get_random_color(),
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2
+					});
+					flightpaths[d.truckid].setMap(window.map);
+					markers[d.truckid].setMap(window.map);
+				}
+				window.lastid = d.lastid;
+			});
+		}
+	});
+	setTimeout( function() { map_points(); }, 3000 );
+}
+map_points();
+
+
+window.onload = initialize;
+
+    </script>
+  </head>
+  <body>
+    <div id="map-canvas"></div>
+  </body>
+</html>
