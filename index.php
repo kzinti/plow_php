@@ -104,13 +104,48 @@ function get_random_color() {
     return color;
 }
 
+function vehiclePopup(vehicle) {
+  var vehicleId = vehicle.id;
+  var popupWindow = new google.maps.InfoWindow();
+
+<?php
+  $q2 = "SELECT * FROM telemetries WHERE _id = " + vehicleID + ";";
+
+  $result2 = pg_fetch_all(pg_query($dbconn, $q2));
+
+  $popuparray = array();
+
+  if( !empty( $result2 ) ) {
+    foreach( $result2 as $r ) {
+      $popuparray[] = array(
+        'truckid' => $r[ 'vehicle_id' ],
+        'lat' => $r[ 'lat' ],
+        'lon' => $r[ 'lon' ],
+        'lastid' => $r[ '_id' ],
+      );
+    }
+  }
+?>
+  posish = new google.maps.LatLng('<?php echo $popuparray['lat'] ?>', '<?php echo $popuparray['lon'] ?>');
+  var place = latLongAddress(posish);
+  var info = "ID: " + vehicleId +
+  "\nCurrent Approximate Location: " + place +
+  "\nSalt Rate: " + 
+  "\nSand Rate: ";
+  popupWindow.setContent(info);
+  popupWindow.open(map, markers[vehicleId - 1]);
+  map.center(posish);
+
+}
 function getTruck(truck){
           var value = truck.value;
           var id = truck.id;
           alert(id);
         }
  
+var geocoder = null;
 function initialize() {
+        geocoder = new google.maps.Geocoder();
         var mapOptions = {
                 zoom: 12,
                 center: new google.maps.LatLng(44.801207, -68.777817),
@@ -120,7 +155,24 @@ function initialize() {
  
         window.map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
 }
- 
+function latLongAddress(latLng){
+  geocoder.geocode({'latLng': latLng}, function(results, status){
+    if(status == google.maps.GeocoderStatus.OK){
+      if(results[1]){
+        //map.setZoom(11);
+        marker = new google.maps.Marker({
+                position: latLng,
+                map: map
+        });
+        infowindow.setContent(results[1].formatted_address);
+        infowindow.open(map, marker);
+        return results[0].formatted_address;
+      }
+    } else {
+      alert("GeoCoder failed due to: " + status);
+    }
+  });
+} 
 window.lastid = 0;
  
 var markers = new Array();
@@ -208,7 +260,7 @@ window.onload = initialize;
                 $i = 1;
                 foreach($result as $r){
                   if ($r['type']==='plow') {
-                    echo '<li id='.$i.'> Snowplow '.$i.'</li>';
+                    echo '<li id='.$i.' onclick=\'vehiclePopup(this)\'> Snowplow '.$i.'</li>';
                     $i = $i + 1;
                   }
                 }
