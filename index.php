@@ -200,6 +200,20 @@ window.onload = initialize;
           <dt class="panel"><a href="">Snowplows</a></dt>
           <dd>
             <ul class = "panel-content">
+              <?php
+                $dbconn = pg_connect( 'host=141.114.192.128 port=5432 dbname=matador user=will password=will' );
+                $q = "SELECT *
+                      FROM vehicles;";
+                $result = pg_fetch_all( pg_query( $dbconn, $q ) );
+                $i = 1;
+                foreach($result as $r){
+                  if ($r['type']==='plow') {
+                    echo '<li id='.$i.'> Snowplow '.$i.'</li>';
+                    $i = $i + 1;
+                  }
+                }
+
+              ?>
             </ul>
           </dd>
           <dt class = "panel"><a href="">Sandsweepers</a></dt>
