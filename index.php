@@ -1,3 +1,6 @@
+<?php error_reporting(E_ALL); 
+ini_set('display_errors',"On");
+?>
 <!DOCTYPE html>
 <html>
   <head>
@@ -44,6 +47,10 @@
         position: absolute;
       }
 
+      #info-panel-border.hidden {
+        -webkit-transform: translate(300px,0px);
+      }
+      
       #info-panel{
         background-color: white;
         border: 2px dotted #E9E9E9;
@@ -52,8 +59,9 @@
       }
 
       .panel{
-        width: 296px;
-        height: 50px;
+        width: 286px;
+        height: 30px;
+        padding-left: 10px;
         background-color: #E9E9E9;
         list-style-type: none;
 
@@ -75,7 +83,7 @@
       }
       .panel-content li{
         list-style-type: none;
-        margin-left: 20%;
+        padding-left: 20px;
         background-color: #E9E9E9;
       }
 
@@ -92,135 +100,147 @@
       }
 
     </style>
-    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&libraries=geometry"></script>
     <script>
  
-function get_random_color() {
-    var letters = '0123456789ABCDEF'.split('');
-    var color = '#';
-    for (var i = 0; i < 6; i++ ) {
-        color += letters[Math.round(Math.random() * 15)];
-    }
-    return color;
-}
+ function get_random_color() {
+     var letters = '0123456789ABCDEF'.split('');
+     var color = '#';
+     for (var i = 0; i < 6; i++) {
+         color += letters[Math.round(Math.random() * 15)];
+     }
+     return color;
+ }
 
-function vehiclePopup(vehicle) {
-  var vehicleId = vehicle.id;
-  var popupWindow = new google.maps.InfoWindow();
+ function vehiclePopup(vehicle) {
+     var vehicleId = vehicle.id;
+     var popupWindow = new google.maps.InfoWindow();
+     jQuery.getJSON("http://141.114.192.128/ajax.php", {
+             vehicleid: vehicleId
+         })
+         .done(function (data) {
+             if (data == null) return;
+             posish = new google.maps.LatLng(data[0].lat, data[0].lon);
+             var place = latLongAddress(posish);
+             var info = "ID: " + vehicleId +
+                 "\nCurrent Approximate Location: " + place +
+                 "\nSalt Rate: " +
+                 "\nSand Rate: ";
+             popupWindow.setContent(info);
+             popupWindow.open(map, markers[vehicleId - 1]);
+             window.map.setCenter(posish);
+         });
+ }
 
-<?php
-  $q2 = "SELECT * FROM telemetries WHERE _id = " + vehicleID + ";";
+ function getTruck(truck) {
+     var value = truck.value;
+     var id = truck.id;
+     alert(id);
+ }
 
-  $result2 = pg_fetch_all(pg_query($dbconn, $q2));
+ var geocoder = null;
+ var infowindow = new google.maps.InfoWindow();
+ var marker = null;
+ function initialize() {
+     geocoder = new google.maps.Geocoder();
+     var mapOptions = {
+         zoom: 12,
+         center: new google.maps.LatLng(44.801207, -68.777817),
+         disableDefaultUI: true,
+         mapTypeId: google.maps.MapTypeId.ROADMAP
+     };
 
-  $popuparray = array();
+     window.map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+     marker = new google.maps.Marker({
+      map: map
+     });
+ }
+ function in_circle(center_x, center_y, radius, x, y){
+  square_dist = (center_x - x) ^ 2 + (center_y - y) ^ 2
+  return (square_dist <= (radius ^ 2))
+ }
 
-  if( !empty( $result2 ) ) {
-    foreach( $result2 as $r ) {
-      $popuparray[] = array(
-        'truckid' => $r[ 'vehicle_id' ],
-        'lat' => $r[ 'lat' ],
-        'lon' => $r[ 'lon' ],
-        'lastid' => $r[ '_id' ],
-      );
-    }
+ console.log(in_circle(44.801207,-68.777817,0.000100,0,0));
+
+ function latLongAddress(latLng) {
+     geocoder.geocode({
+             'latLng': latLng
+         }, function (results, status) {
+             if (status == google.maps.GeocoderStatus.OK) {
+                 if (results[0]) {
+                      //map.setZoom(11);
+                   marker.setPosition(latLng);
+                     infowindow.setContent(results[0].formatted_address);
+                     infowindow.open(map, marker);
+                     return results[0].formatted_address;
+                 }
+             } else {
+                 alert("GeoCoder failed due to: " + status);
+             }
+         });
+ }
+ window.lastid = 0;
+
+ var markers = new Array();
+ var flightpaths = new Array();
+ var flightpathcoords = new Array();
+
+ function map_points() {
+     jQuery.getJSON('http://141.114.192.128/ajax.php?lastid=' + window.lastid + '&jsonp=?', function (data) {
+       if (data) {
+         var PreviousLatLong = null;
+                 jQuery.each(data, function (i, d) {
+                   if (markers[d.truckid]) {
+                     var ItemLatLong = new google.maps.LatLng(d.lat, d.lon);
+                     if(PreviousLatLong !== null && google.maps.geometry.spherical.computeDistanceBetween(PreviousLatLong,ItemLatLong) < 15) return true;
+                     PreviousLatLong = ItemLatLong;
+                             markers[d.truckid].setPosition(ItemLatLong);
+                             flightpathcoords[d.truckid].push(ItemLatLong);
+                             flightpaths[d.truckid].setPath(flightpathcoords[d.truckid]);
+                             flightpaths[d.truckid].setMap(window.map);
+                   } else {
+                     var ItemLatLong = new google.maps.LatLng(d.lat, d.lon);
+                     if(PreviousLatLong !== null && google.maps.geometry.spherical.computeDistanceBetween(PreviousLatLong,ItemLatLong) < 15) return true;
+                     PreviousLatLong = ItemLatLong;
+                             markers[d.truckid] = new google.maps.Marker({
+                                     position: ItemLatLong,
+                                     title: "Snow Plow",
+                                 });
+                             flightpathcoords[d.truckid] = new Array();
+                             flightpathcoords[d.truckid].push(ItemLatLong);
+                             flightpaths[d.truckid] = new google.maps.Polyline({
+                                     path: flightpathcoords[d.truckid],
+                                     strokeColor: get_random_color(),
+                                     strokeOpacity: 1.0,
+                                     strokeWeight: 2
+                                 });
+                             flightpaths[d.truckid].setMap(window.map);
+                             markers[d.truckid].setMap(window.map);
+                         }
+                         window.lastid = d.lastid;
+                     });
+             }
+         });
+
+
+     function popToolbar(typeArray) {
+
+     }
+
+
+
+     setTimeout(function () {
+             map_points();
+         }, 3000);
+ }
+ //map_points();
+
+
+ window.onload = function(){
+   //while(google.maps.geometry){
+    initialize();
+    map_points();
   }
-?>
-  posish = new google.maps.LatLng('<?php echo $popuparray['lat'] ?>', '<?php echo $popuparray['lon'] ?>');
-  var place = latLongAddress(posish);
-  var info = "ID: " + vehicleId +
-  "\nCurrent Approximate Location: " + place +
-  "\nSalt Rate: " + 
-  "\nSand Rate: ";
-  popupWindow.setContent(info);
-  popupWindow.open(map, markers[vehicleId - 1]);
-  map.center(posish);
-
-}
-function getTruck(truck){
-          var value = truck.value;
-          var id = truck.id;
-          alert(id);
-        }
- 
-var geocoder = null;
-function initialize() {
-        geocoder = new google.maps.Geocoder();
-        var mapOptions = {
-                zoom: 12,
-                center: new google.maps.LatLng(44.801207, -68.777817),
-                disableDefaultUI: true,
-                mapTypeId: google.maps.MapTypeId.ROADMAP
-        };
- 
-        window.map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
-}
-function latLongAddress(latLng){
-  geocoder.geocode({'latLng': latLng}, function(results, status){
-    if(status == google.maps.GeocoderStatus.OK){
-      if(results[1]){
-        //map.setZoom(11);
-        marker = new google.maps.Marker({
-                position: latLng,
-                map: map
-        });
-        infowindow.setContent(results[1].formatted_address);
-        infowindow.open(map, marker);
-        return results[0].formatted_address;
-      }
-    } else {
-      alert("GeoCoder failed due to: " + status);
-    }
-  });
-} 
-window.lastid = 0;
- 
-var markers = new Array();
-var flightpaths = new Array();
-var flightpathcoords = new Array();
-function map_points() {
-        jQuery.getJSON( 'http://141.114.192.128/ajax.php?lastid=' + window.lastid + '&jsonp=?', function( data ) {
-                if( data ) {
-                        jQuery.each( data, function( i, d ) {
-                                if( markers[d.truckid] ) {
-                                        markers[d.truckid].setPosition( new google.maps.LatLng( d.lat,d.lon ) );
-                                        flightpathcoords[d.truckid].push( new google.maps.LatLng( d.lat,d.lon) );
-                                        flightpaths[d.truckid].setPath( flightpathcoords[d.truckid] );
-                                        flightpaths[d.truckid].setMap( window.map );
-                                } else {
-                                        markers[d.truckid] = new google.maps.Marker({
-                                                position: new google.maps.LatLng( d.lat,d.lon),
-                                                title:"Snow Plow",
-                                        });
-                                        flightpathcoords[d.truckid] = new Array();
-                                        flightpathcoords[d.truckid].push( new google.maps.LatLng( d.lat,d.lon) );
-                                        flightpaths[d.truckid] = new google.maps.Polyline({
-                        path: flightpathcoords[d.truckid],
-                        strokeColor: get_random_color(),
-                        strokeOpacity: 1.0,
-                        strokeWeight: 2
-                                        });
-                                        flightpaths[d.truckid].setMap(window.map);
-                                        markers[d.truckid].setMap(window.map);
-                                }
-                                window.lastid = d.lastid;
-                        });
-                }
-        });
-
-        
-        function popToolbar(typeArray){
-
-        }
-       
-        
-
-        setTimeout( function() { map_points(); }, 3000 );
-}
-map_points();
- 
- 
-window.onload = initialize;
  
     </script>
 
@@ -238,9 +258,9 @@ window.onload = initialize;
           
           return false;
         });
-
-        
-
+        jQuery('#info-panel').click(function(){
+          jQuery("#info-panel-border").toggleClass("hidden");
+        });
       });
     </script>
   </head>
@@ -249,35 +269,27 @@ window.onload = initialize;
     <div id="info-panel-border" class="glass">
       <div id="info-panel" class="glass">
         <dl class="accordion">
-          <dt class="panel"><a href="">Snowplows</a></dt>
+<?php 
+$dbconn = pg_connect( 'host=141.114.192.128 port=5432 dbname=matador user=will password=will' );
+$q = "SELECT type FROM vehicles GROUP BY type";
+$result = pg_fetch_all( pg_query( $dbconn, $q ) );
+foreach($result as $r){
+?>
+  <dt class="panel"><a href=""><?php echo $r['type']; ?></a></dt>
           <dd>
             <ul class = "panel-content">
-              <?php
-                $dbconn = pg_connect( 'host=141.114.192.128 port=5432 dbname=matador user=will password=will' );
-                $q = "SELECT *
-                      FROM vehicles;";
-                $result = pg_fetch_all( pg_query( $dbconn, $q ) );
-                $i = 1;
-                foreach($result as $r){
-                  if ($r['type']==='plow') {
-                    echo '<li id='.$i.' onclick=\'vehiclePopup(this)\'> Snowplow '.$i.'</li>';
-                    $i = $i + 1;
-                  }
-                }
-
+<?php
+  $i=1;
+  $q = "SELECT * FROM vehicles WHERE type='". $r['type'] ."';";
+  $vehiclesResult = pg_fetch_all(pg_query($q));
+  foreach($vehiclesResult as $vehicle){
+                echo '<li id='.$i.' onclick=\'vehiclePopup(this)\'> ' . $r['type'] .$i.'</li>';
+               $i++;
+  }
               ?>
             </ul>
           </dd>
-          <dt class = "panel"><a href="">Sandsweepers</a></dt>
-          <dd>
-            <ul class = "panel-content">
-          </ul>
-          </dd>
-          <dt class = "panel"><a href="">Garbage Trucks</a></dt>
-          <dd>
-            <ul class = "panel-content">
-          </ul>
-          </dd>
+<?php } ?>
         </dl>
       </div>
     </div>
